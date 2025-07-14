@@ -1,0 +1,15 @@
+[project]
+name = "pyxelate-to-color"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "marimo[recommended]>=0.14.10",
+    "matplotlib>=3.10.3",
+    "pillow>=11.3.0",
+    "pyxelate",
+]
+
+[tool.uv.sources]
+pyxelate = { git = "https://github.com/sedthh/pyxelate.git" }
