@@ -47,6 +47,8 @@
                   hx-target="#results"
                   hx-encoding="multipart/form-data"
                   hx-indicator="#loading"
+                  hx-trigger="submit"
+                  hx-swap="innerHTML"
                   class="space-y-6">
 
                 <!-- File Upload -->
@@ -186,6 +188,26 @@
             const event = new Event('change', { bubbles: true });
             document.getElementById('file').dispatchEvent(event);
         }
+
+        function logFormData(event) {
+            const form = document.getElementById('upload-form');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData);
+
+            console.log('🔍 CLIENT DEBUG - Form Data:', data);
+            console.log('  - downsample_by:', data.downsample_by, '(type:', typeof data.downsample_by, ')');
+            console.log('  - palette:', data.palette, '(type:', typeof data.palette, ')');
+            console.log('  - upscale:', data.upscale, '(type:', typeof data.upscale, ')');
+        }
+
+        // Add event listener to form submission
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('upload-form');
+            form.addEventListener('htmx:configRequest', function(evt) {
+                console.log('🔍 HTMX Request Config:', evt.detail);
+                logFormData();
+            });
+        });
     </script>
 </body>
 </html>

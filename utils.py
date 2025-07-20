@@ -20,9 +20,10 @@ def timing_decorator(func):
         # Get class name if it's a method
         if args and hasattr(args[0], '__class__'):
             class_name = args[0].__class__.__name__
-            print(f"⏱️  {class_name}.{func.__name__}: {execution_time:.2f}ms")
+            # print(f"⏱️  {class_name}.{func.__name__}: {execution_time:.2f}ms")
         else:
-            print(f"⏱️  {func.__name__}: {execution_time:.2f}ms")
+            pass
+            # print(f"⏱️  {func.__name__}: {execution_time:.2f}ms")
 
         return result
     return wrapper
@@ -50,16 +51,35 @@ class PixelArtProcessor:
     @timing_decorator
     def pixelate_image(self, image: np.ndarray) -> tuple[np.ndarray, Pyx]:
         """Pixelate an image using the configured options."""
+        # Debug: Print the options being used in pixelation
+        print(f"🔍 DEBUG - PixelArtProcessor.pixelate_image:")
+        print(f"  - Image shape: {image.shape}")
+        print(f"  - factor (downsample_by): {self.options.downsample_by}")
+        print(f"  - palette: {self.options.palette}")
+        print(f"  - upscale: {self.options.upscale}")
+
         self.pyx = Pyx(
             factor=self.options.downsample_by,
             palette=self.options.palette,
             upscale=self.options.upscale,
         )
+
+        # Debug: Print what was actually set in Pyx
+        print(f"🔍 DEBUG - Pyx object created with:")
+        print(f"  - factor: {self.pyx.factor}")
+        print(f"  - palette: {self.pyx.palette}")
+        print(f"  - upscale: {self.pyx.upscale}")
+
         # fit an image, allow Pyxelate to learn the color palette
         self.pyx.fit(image)
 
         # transform image to pixel art using the learned color palette
         new_image = self.pyx.transform(image)
+
+        # Debug: Print output image info
+        print(f"🔍 DEBUG - Pixelation completed:")
+        print(f"  - Original image shape: {image.shape}")
+        print(f"  - Pixelated image shape: {new_image.shape}")
 
         return new_image, self.pyx
 
@@ -88,17 +108,21 @@ class GridRenderer:
     @timing_decorator
     def get_cell_color(self, cell_index: CellIndex, image):
         """Get the color of a specific cell."""
-        image_zone = image[self.get_mask(cell_index)]
-        return image_zone[3][3]
+        image_zone = image[self.get_mask(cell_index, border_width=1)]
+        # Get the center pixel of the cell zone dynamically
+        center_y, center_x = image_zone.shape[0] // 2, image_zone.shape[1] // 2
+        return image_zone[center_y, center_x]
 
 
     @timing_decorator
     def create_draw_grid(self, image: np.ndarray, pyx: Pyx) -> np.ndarray:
         """Optimized version that renders all text at once instead of per-cell."""
         transformed_image = image.copy()
-        grid_size = int(transformed_image.shape[0] / self.cell_size)
-        total_cells = grid_size * grid_size
-        print(f"🚀 OPTIMIZED - Grid size: {grid_size}x{grid_size} = {total_cells} cells")
+        # Calculate separate grid sizes for width and height to support non-square images
+        grid_height = int(transformed_image.shape[0] / self.cell_size)
+        grid_width = int(transformed_image.shape[1] / self.cell_size)
+        total_cells = grid_width * grid_height
+        print(f"🚀 OPTIMIZED - Grid size: {grid_width}x{grid_height} = {total_cells} cells")
 
         color_mapper = ColorMapper(pyx.colors.reshape(-1, 3))
 
@@ -107,8 +131,9 @@ class GridRenderer:
         BLACK = np.array([0, 0, 0])
         WHITE = np.array([255, 255, 255])
 
-        for i in range(grid_size):
-            for j in range(grid_size):
+        # Use separate ranges for width and height
+        for i in range(grid_width):
+            for j in range(grid_height):
                 ci = CellIndex(x=i, y=j)
                 # Draw border and background
                 transformed_image[self.get_mask(ci)] = BLACK
@@ -122,16 +147,16 @@ class GridRenderer:
         text_positions = []
         characters = []
 
-        for i in range(grid_size):
-            for j in range(grid_size):
+        for i in range(grid_width):
+            for j in range(grid_height):
                 ci = CellIndex(x=i, y=j)
                 cell_color = self.get_cell_color(ci, image)
                 color_index = color_mapper.get_color_index(cell_color)
 
-                # Calculate normalized position
+                # Calculate normalized position - fix dimension usage
                 margin = (1 - self.font_scale_factor)/2
-                font_x = self._normalize_font_position(ci.x, margin, image.shape[0])
-                font_y = self._normalize_font_position(ci.y, margin, image.shape[1])
+                font_x = self._normalize_font_position(ci.x, margin, image.shape[1])  # Use width for x
+                font_y = self._normalize_font_position(ci.y, margin, image.shape[0])  # Use height for y
 
                 # Y-Axis is inverted for fig
                 font_y = 1 - font_y
