@@ -8,3 +8,10 @@ wheels/
 
 # Virtual environments
 .venv
+
+
+# Output files
+static/outputs/
+
+# Uploads
+static/uploads/

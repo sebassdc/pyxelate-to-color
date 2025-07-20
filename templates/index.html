@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pyxelate to Color - Image to Pixel Art Converter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'pixel-purple': '#8B5CF6',
+                        'pixel-pink': '#EC4899',
+                        'pixel-blue': '#3B82F6',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gradient-to-br from-purple-50 to-pink-50 min-h-screen">
+    <!-- Header -->
+    <div class="bg-white shadow-lg border-b-4 border-pixel-purple">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-6">
+                <div class="flex items-center">
+                    <div class="w-8 h-8 bg-gradient-to-r from-pixel-purple to-pixel-pink rounded-lg mr-3"></div>
+                    <h1 class="text-3xl font-bold text-gray-900">Pyxelate to Color</h1>
+                </div>
+                <div class="text-sm text-gray-600">
+                    Convert images to pixel art with color grids
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Upload Section -->
+        <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">Upload Your Image</h2>
+
+            <form id="upload-form"
+                  hx-post="/upload"
+                  hx-target="#results"
+                  hx-encoding="multipart/form-data"
+                  hx-indicator="#loading"
+                  class="space-y-6">
+
+                <!-- File Upload -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Choose Image File
+                    </label>
+                    <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-pixel-purple transition-colors">
+                        <div class="space-y-1 text-center">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            <div class="flex text-sm text-gray-600">
+                                <label for="file" class="relative cursor-pointer bg-white rounded-md font-medium text-pixel-purple hover:text-pixel-pink">
+                                    <span>Upload a file</span>
+                                    <input id="file" name="file" type="file" accept="image/*" class="sr-only" required>
+                                </label>
+                                <p class="pl-1">or drag and drop</p>
+                            </div>
+                            <p class="text-xs text-gray-500">PNG, JPG, WEBP up to 10MB</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                        <label for="downsample_by" class="block text-sm font-medium text-gray-700 mb-2">
+                            Downsample Factor
+                        </label>
+                        <input type="number" id="downsample_by" name="downsample_by" value="20" min="1" max="50"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-pixel-purple focus:border-pixel-purple">
+                        <p class="text-xs text-gray-500 mt-1">Higher = more pixelated</p>
+                    </div>
+
+                    <div>
+                        <label for="palette" class="block text-sm font-medium text-gray-700 mb-2">
+                            Color Palette Size
+                        </label>
+                        <input type="number" id="palette" name="palette" value="8" min="2" max="32"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-pixel-purple focus:border-pixel-purple">
+                        <p class="text-xs text-gray-500 mt-1">Number of colors to use</p>
+                    </div>
+
+                    <div>
+                        <label for="upscale" class="block text-sm font-medium text-gray-700 mb-2">
+                            Grid Cell Size
+                        </label>
+                        <input type="number" id="upscale" name="upscale" value="100" min="20" max="200"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-pixel-purple focus:border-pixel-purple">
+                        <p class="text-xs text-gray-500 mt-1">Size of each pixel cell</p>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="flex justify-center">
+                    <button type="submit"
+                            class="bg-gradient-to-r from-pixel-purple to-pixel-pink text-white font-bold py-3 px-8 rounded-lg hover:from-purple-600 hover:to-pink-600 transform hover:scale-105 transition-all duration-200 shadow-lg">
+                        🎨 Convert to Pixel Art
+                    </button>
+                </div>
+            </form>
+
+            <!-- Loading Indicator -->
+            <div id="loading" class="htmx-indicator flex justify-center items-center py-8">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-pixel-purple"></div>
+                <span class="ml-3 text-lg text-gray-600">Processing your image...</span>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="results" class="space-y-8">
+            <!-- Results will appear here via HTMX -->
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 mt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="text-center text-gray-600">
+                <p>Built with FastAPI, HTMX, and Tailwind CSS</p>
+                <p class="text-sm mt-2">Transform your images into pixel art with numbered color grids</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Handle file input change
+        document.getElementById('file').addEventListener('change', function(e) {
+            const fileName = e.target.files[0]?.name || 'No file selected';
+            const fileSize = e.target.files[0]?.size || 0;
+            const fileSizeMB = (fileSize / 1024 / 1024).toFixed(2);
+
+            // Update the upload text
+            const uploadText = document.querySelector('.text-sm.text-gray-600');
+            if (e.target.files[0]) {
+                uploadText.innerHTML = `<span class="text-pixel-purple font-medium">${fileName}</span> (${fileSizeMB} MB)`;
+            }
+        });
+
+        // Handle drag and drop
+        const dropZone = document.querySelector('.border-dashed');
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+            document.body.addEventListener(eventName, preventDefaults, false);
+        });
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, unhighlight, false);
+        });
+
+        dropZone.addEventListener('drop', handleDrop, false);
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        function highlight(e) {
+            dropZone.classList.add('border-pixel-purple', 'bg-purple-50');
+        }
+
+        function unhighlight(e) {
+            dropZone.classList.remove('border-pixel-purple', 'bg-purple-50');
+        }
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            document.getElementById('file').files = files;
+
+            const event = new Event('change', { bubbles: true });
+            document.getElementById('file').dispatchEvent(event);
+        }
+    </script>
+</body>
+</html>

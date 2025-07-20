@@ -11,7 +11,6 @@ with app.setup:
     mo.md("# Testing grounds 🌊🍃")
 
     from skimage import io
-    help(utils)
 
 
 

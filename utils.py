@@ -67,8 +67,9 @@ class PixelArtProcessor:
 class GridRenderer:
     """Handles grid drawing and cell operations."""
 
-    def __init__(self, cell_size: int):
+    def __init__(self, cell_size: int, font_scale_factor: float = .6):
         self.cell_size = cell_size
+        self.font_scale_factor = font_scale_factor
 
     def get_mask(self, cell_index: CellIndex, border_width=0) -> tuple[slice, slice]:
         """Get the mask for a specific cell."""
@@ -128,24 +129,37 @@ class GridRenderer:
                 color_index = color_mapper.get_color_index(cell_color)
 
                 # Calculate normalized position
-                font_scale_factor = .6
-                margin = (1 - font_scale_factor)/2
+                margin = (1 - self.font_scale_factor)/2
                 font_x = self._normalize_font_position(ci.x, margin, image.shape[0])
                 font_y = self._normalize_font_position(ci.y, margin, image.shape[1])
 
-                text_positions.append((font_x, 1-font_y))
+                # Y-Axis is inverted for fig
+                font_y = 1 - font_y
+
+                text_positions.append((font_x, font_y))
                 characters.append(str(color_index))
 
-        # Render all text at once
-        fig = plt.figure()
-        fig.figimage(transformed_image, resize=True)
+        # Render all text at once with explicit figure settings
+        img_height, img_width = transformed_image.shape[:2]
+        # Set figure size based on image dimensions to maintain consistent scaling
+        fig_width = img_width / 100  # Convert pixels to inches (assuming 100 DPI)
+        fig_height = img_height / 100
+
+        fig = plt.figure(figsize=(fig_width, fig_height), dpi=100)
+        fig.figimage(transformed_image, resize=False)  # Don't resize, use exact size
+
+        # Calculate font size relative to actual figure dimensions
+        # Use a smaller scale factor for web environments
+        effective_font_scale = self.font_scale_factor * 0.7  # Reduce by 30%
+        calculated_fontsize = self.cell_size * effective_font_scale
 
         for (x, y), char in zip(text_positions, characters):
             fig.text(
                 x, y, char,
-                fontsize=self.cell_size * 0.3,
+                fontsize=calculated_fontsize,
                 va="top",
-                ma="center"
+                ma="center",  # Use ha instead of ma (ma is deprecated)
+                color='black'
             )
 
         fig.canvas.draw()
@@ -158,48 +172,8 @@ class GridRenderer:
         print(f"⏱️  Text collection & rendering: {text_time:.2f}ms")
         print(f"⏱️  Total optimized time: {total_optimized_time:.2f}ms")
         print(f"🎯 Performance: {total_optimized_time/total_cells:.2f}ms per cell")
+        print(f"📏 Font size used: {calculated_fontsize}")
 
-        return annotated_img[:, :, :3]
-
-    @timing_decorator
-    def draw_char_on_cell(self, character: str, image: np.ndarray, font_position: CellIndex) -> np.ndarray:
-        """Draw a character on a specific cell."""
-        BLACK = np.array([0, 0, 0])
-        WHITE = np.array([255, 255, 255])
-        border_color = BLACK
-        bg_color = WHITE
-
-        border_width = 1
-        image[self.get_mask(font_position)] = border_color
-        image[self.get_mask(font_position, border_width=border_width)] = bg_color
-
-        # value between 0 and 1
-        font_scale_factor = .6
-        margin = (1 - font_scale_factor)/2
-        font_position_coord_x = self._normalize_font_position(
-            font_position.x,
-            margin,
-            size=image.shape[0],
-        )
-        font_position_coord_y = self._normalize_font_position(
-            font_position.y,
-            margin,
-            size=image.shape[1],
-        )
-
-        fig = plt.figure()
-        fig.figimage(image, resize=True)
-        fig.text(
-            font_position_coord_x,
-            1-font_position_coord_y,
-            character,
-            fontsize=self.cell_size * font_scale_factor,
-            va="top",
-            ma="center"
-        )
-        fig.canvas.draw()
-        annotated_img = np.asarray(fig.canvas.renderer.buffer_rgba())
-        plt.close(fig)
         return annotated_img[:, :, :3]
 
     def _normalize_font_position(self, pos: int, margin: float, size) -> float:

@@ -1,0 +1,97 @@
+<!-- Results Section -->
+<div class="bg-white rounded-xl shadow-lg p-8">
+    <h2 class="text-2xl font-bold text-gray-900 mb-6">🎨 Your Pixel Art Results</h2>
+
+    <!-- Image Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <!-- Original Image -->
+        <div class="space-y-4">
+            <h3 class="text-lg font-semibold text-gray-800">Original Image</h3>
+            <div class="bg-gray-100 rounded-lg p-4">
+                <img src="{{ original_url }}" alt="Original" class="max-w-full h-auto rounded-lg shadow-md mx-auto">
+            </div>
+        </div>
+
+        <!-- Pixelated Result -->
+        <div class="space-y-4">
+            <h3 class="text-lg font-semibold text-gray-800">Pixelated Version</h3>
+            <div class="bg-gray-100 rounded-lg p-4">
+                <img src="{{ pixelated_url }}" alt="Pixelated" class="max-w-full h-auto rounded-lg shadow-md mx-auto">
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Result with Grid -->
+    <div class="space-y-4 mb-8">
+        <h3 class="text-lg font-semibold text-gray-800">Paint-by-Number Grid</h3>
+        <div class="bg-gray-100 rounded-lg p-4">
+            <img src="{{ result_url }}" alt="Grid Result" class="max-w-full h-auto rounded-lg shadow-md mx-auto">
+            <p class="text-sm text-gray-600 text-center mt-2">
+                Each number corresponds to a color in the palette below
+            </p>
+        </div>
+    </div>
+
+    <!-- Color Palette -->
+    {% if colors %}
+    <div class="space-y-4 mb-8">
+        <h3 class="text-lg font-semibold text-gray-800">Color Palette ({{ palette_size }} colors)</h3>
+        <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-4">
+            {% for i in range(colors|length) %}
+            <div class="flex flex-col items-center space-y-2">
+                <div class="w-16 h-16 rounded-lg border-2 border-gray-300 shadow-md"
+                     style="background-color: rgb({{ colors[i][0] }}, {{ colors[i][1] }}, {{ colors[i][2] }});">
+                </div>
+                <div class="text-center">
+                    <div class="text-xl font-bold text-gray-800">{{ i }}</div>
+                    <div class="text-xs text-gray-500">
+                        rgb({{ colors[i][0] }}, {{ colors[i][1] }}, {{ colors[i][2] }})
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Download Buttons -->
+    <div class="flex flex-wrap gap-4 justify-center">
+        <a href="/download/{{ file_id }}"
+           class="bg-gradient-to-r from-pixel-blue to-pixel-purple text-white font-bold py-3 px-6 rounded-lg hover:from-blue-600 hover:to-purple-600 transform hover:scale-105 transition-all duration-200 shadow-lg">
+            📥 Download Grid Version
+        </a>
+
+        <a href="{{ pixelated_url }}" download="pixelated_{{ file_id }}.png"
+           class="bg-gradient-to-r from-pixel-pink to-pixel-purple text-white font-bold py-3 px-6 rounded-lg hover:from-pink-600 hover:to-purple-600 transform hover:scale-105 transition-all duration-200 shadow-lg">
+            📥 Download Pixelated Only
+        </a>
+
+        <button onclick="location.reload()"
+                class="bg-gradient-to-r from-green-500 to-green-600 text-white font-bold py-3 px-6 rounded-lg hover:from-green-600 hover:to-green-700 transform hover:scale-105 transition-all duration-200 shadow-lg">
+            🔄 Process Another Image
+        </button>
+    </div>
+</div>
+
+<!-- Tips Section -->
+<div class="bg-gradient-to-r from-purple-100 to-pink-100 rounded-xl p-6">
+    <h3 class="text-lg font-semibold text-gray-800 mb-4">💡 Tips for Best Results</h3>
+    <ul class="space-y-2 text-gray-700">
+        <li class="flex items-start">
+            <span class="text-pixel-purple mr-2">•</span>
+            <span>Use the <strong>grid version</strong> for paint-by-number projects</span>
+        </li>
+        <li class="flex items-start">
+            <span class="text-pixel-purple mr-2">•</span>
+            <span>Higher downsample values create more pixelated effects</span>
+        </li>
+        <li class="flex items-start">
+            <span class="text-pixel-purple mr-2">•</span>
+            <span>Fewer colors in the palette create simpler paint-by-number templates</span>
+        </li>
+        <li class="flex items-start">
+            <span class="text-pixel-purple mr-2">•</span>
+            <span>Larger grid cell sizes make numbers easier to read</span>
+        </li>
+    </ul>
+</div>

@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "fastapi[standard]>=0.116.1",
     "marimo[recommended]>=0.14.10",
     "matplotlib>=3.10.3",
     "pillow>=11.3.0",
