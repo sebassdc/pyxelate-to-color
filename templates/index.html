@@ -29,8 +29,13 @@
                     <div class="w-8 h-8 bg-gradient-to-r from-pixel-purple to-pixel-pink rounded-lg mr-3"></div>
                     <h1 class="text-3xl font-bold text-gray-900">Pyxelate to Color</h1>
                 </div>
-                <div class="text-sm text-gray-600">
-                    Convert images to pixel art with color grids
+                <div class="flex items-center space-x-4">
+                    <a href="/gallery" class="bg-gradient-to-r from-pixel-blue to-pixel-purple text-white font-bold py-2 px-4 rounded-lg hover:from-blue-600 hover:to-purple-600 transition-all duration-200">
+                        🖼️ View Gallery
+                    </a>
+                    <div class="text-sm text-gray-600">
+                        Convert images to pixel art with color grids
+                    </div>
                 </div>
             </div>
         </div>
@@ -207,6 +212,18 @@
                 console.log('🔍 HTMX Request Config:', evt.detail);
                 logFormData();
             });
+
+            // Pre-fill form from URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('downsample_by')) {
+                document.getElementById('downsample_by').value = urlParams.get('downsample_by');
+            }
+            if (urlParams.get('palette')) {
+                document.getElementById('palette').value = urlParams.get('palette');
+            }
+            if (urlParams.get('upscale')) {
+                document.getElementById('upscale').value = urlParams.get('upscale');
+            }
         });
     </script>
 </body>

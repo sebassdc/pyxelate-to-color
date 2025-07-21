@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gallery - Pyxelate to Color</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'pixel-purple': '#8B5CF6',
+                        'pixel-pink': '#EC4899',
+                        'pixel-blue': '#3B82F6',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gradient-to-br from-purple-50 to-pink-50 min-h-screen">
+    <!-- Header -->
+    <div class="bg-white shadow-lg border-b-4 border-pixel-purple">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-6">
+                <div class="flex items-center">
+                    <div class="w-8 h-8 bg-gradient-to-r from-pixel-purple to-pixel-pink rounded-lg mr-3"></div>
+                    <h1 class="text-3xl font-bold text-gray-900">Pyxelate Gallery</h1>
+                </div>
+                <div class="flex space-x-4">
+                    <a href="/" class="bg-gradient-to-r from-pixel-blue to-pixel-purple text-white font-bold py-2 px-4 rounded-lg hover:from-blue-600 hover:to-purple-600 transition-all duration-200">
+                        🎨 Create New
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- Stats Section -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">📊 Gallery Statistics</h2>
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div class="text-center p-4 bg-gradient-to-r from-purple-100 to-pink-100 rounded-lg">
+                    <div class="text-2xl font-bold text-pixel-purple">{{ stats.total_images }}</div>
+                    <div class="text-sm text-gray-600">Total Images</div>
+                </div>
+                <div class="text-center p-4 bg-gradient-to-r from-blue-100 to-purple-100 rounded-lg">
+                    <div class="text-2xl font-bold text-pixel-blue">{{ stats.total_size_mb }}</div>
+                    <div class="text-sm text-gray-600">MB Storage</div>
+                </div>
+                <div class="text-center p-4 bg-gradient-to-r from-pink-100 to-purple-100 rounded-lg">
+                    <div class="text-2xl font-bold text-pixel-pink">{{ stats.avg_palette_size }}</div>
+                    <div class="text-sm text-gray-600">Avg Palette Size</div>
+                </div>
+                <div class="text-center p-4 bg-gradient-to-r from-green-100 to-blue-100 rounded-lg">
+                    <div class="text-2xl font-bold text-green-600">{{ stats.most_common_downsample }}</div>
+                    <div class="text-sm text-gray-600">Popular Downsample</div>
+                </div>
+                {% if stats.date_range %}
+                <div class="text-center p-4 bg-gradient-to-r from-yellow-100 to-orange-100 rounded-lg">
+                    <div class="text-lg font-bold text-orange-600">{{ stats.date_range.earliest }}</div>
+                    <div class="text-sm text-gray-600">First Image</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Filters Section -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">🔍 Search & Filter</h3>
+            <form method="get" action="/gallery" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <!-- Search -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Search Filenames</label>
+                        <input type="text" name="search" value="{{ search }}" placeholder="Search by filename..."
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-pixel-purple focus:border-pixel-purple">
+                    </div>
+
+                    <!-- Palette Filter -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Palette Size</label>
+                        <select name="filter_palette" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-pixel-purple focus:border-pixel-purple">
+                            <option value="">All Palettes</option>
+                            {% for palette in unique_palettes %}
+                            <option value="{{ palette }}" {% if filter_palette == palette %}selected{% endif %}>{{ palette }} colors</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Downsample Filter -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Downsample Factor</label>
+                        <select name="filter_downsample" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-pixel-purple focus:border-pixel-purple">
+                            <option value="">All Factors</option>
+                            {% for downsample in unique_downsample %}
+                            <option value="{{ downsample }}" {% if filter_downsample == downsample %}selected{% endif %}>{{ downsample }}x</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Sort -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
+                        <div class="flex space-x-2">
+                            <select name="sort_by" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-pixel-purple focus:border-pixel-purple">
+                                <option value="timestamp" {% if sort_by == "timestamp" %}selected{% endif %}>Date</option>
+                                <option value="original_filename" {% if sort_by == "original_filename" %}selected{% endif %}>Filename</option>
+                                <option value="palette" {% if sort_by == "palette" %}selected{% endif %}>Palette</option>
+                                <option value="downsample_by" {% if sort_by == "downsample_by" %}selected{% endif %}>Downsample</option>
+                            </select>
+                            <select name="sort_order" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-pixel-purple focus:border-pixel-purple">
+                                <option value="desc" {% if sort_order == "desc" %}selected{% endif %}>↓</option>
+                                <option value="asc" {% if sort_order == "asc" %}selected{% endif %}>↑</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center">
+                    <button type="submit" class="bg-gradient-to-r from-pixel-purple to-pixel-pink text-white font-bold py-2 px-6 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all duration-200">
+                        Apply Filters
+                    </button>
+                    <a href="/gallery" class="text-pixel-purple hover:text-pixel-pink font-medium">Clear All Filters</a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Results Summary -->
+        <div class="bg-white rounded-xl shadow-lg p-4 mb-8">
+            <div class="flex justify-between items-center">
+                <div class="text-gray-700">
+                    Showing {{ (current_page - 1) * per_page + 1 }}-{{ (current_page - 1) * per_page + images|length }} of {{ total_items }} images
+                </div>
+
+                <!-- Items per page -->
+                <div class="flex items-center space-x-2">
+                    <span class="text-sm text-gray-600">Per page:</span>
+                    {% for count in [12, 24, 48] %}
+                    <a href="{{ per_page_urls[count] }}"
+                       class="px-3 py-1 rounded {% if per_page == count %}bg-pixel-purple text-white{% else %}bg-gray-200 text-gray-700 hover:bg-gray-300{% endif %}">
+                        {{ count }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Gallery Grid -->
+        {% if images %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+            {% for image in images %}
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300">
+                <!-- Image Preview -->
+                <div class="aspect-square bg-gray-100 relative">
+                    <img src="/static/outputs/{{ image.file_id }}_pixelated.png" alt="{{ image.original_filename }}"
+                         class="w-full h-full object-cover hover:scale-105 transition-transform duration-300">
+                    <div class="absolute top-2 right-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs">
+                        {{ image.palette }} colors
+                    </div>
+                </div>
+
+                <!-- Image Info -->
+                <div class="p-4">
+                    <h3 class="font-bold text-gray-900 truncate mb-2">{{ image.original_filename }}</h3>
+
+                    <!-- Settings Row -->
+                    <div class="grid grid-cols-3 gap-2 text-xs text-gray-600 mb-3">
+                        <div class="text-center p-2 bg-purple-50 rounded">
+                            <div class="font-bold text-pixel-purple">{{ image.downsample_by }}x</div>
+                            <div>Downsample</div>
+                        </div>
+                        <div class="text-center p-2 bg-pink-50 rounded">
+                            <div class="font-bold text-pixel-pink">{{ image.palette }}</div>
+                            <div>Colors</div>
+                        </div>
+                        <div class="text-center p-2 bg-blue-50 rounded">
+                            <div class="font-bold text-pixel-blue">{{ image.upscale }}</div>
+                            <div>Grid Size</div>
+                        </div>
+                    </div>
+
+                    <!-- Color Palette Preview -->
+                    <div class="flex flex-wrap gap-1 mb-3">
+                        {% for color in image.colors[:8] %}
+                        <div class="w-4 h-4 rounded border border-gray-300"
+                             style="background-color: rgb({{ color[0] }}, {{ color[1] }}, {{ color[2] }});"
+                             title="rgb({{ color[0] }}, {{ color[1] }}, {{ color[2] }})">
+                        </div>
+                        {% endfor %}
+                        {% if image.colors|length > 8 %}
+                        <div class="w-4 h-4 rounded border border-gray-300 bg-gray-200 flex items-center justify-center text-xs">
+                            +{{ image.colors|length - 8 }}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Timestamp -->
+                    <div class="text-xs text-gray-500 mb-3">
+                        {{ image.timestamp[:10] }} {{ image.timestamp[11:16] }}
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex space-x-2">
+                        <a href="/image/{{ image.file_id }}" class="flex-1 bg-gradient-to-r from-pixel-blue to-pixel-purple text-white text-center py-2 px-3 rounded-lg text-sm font-medium hover:from-blue-600 hover:to-purple-600 transition-all duration-200">
+                            View Details
+                        </a>
+                        <a href="/download/{{ image.file_id }}" class="bg-gradient-to-r from-pixel-pink to-pixel-purple text-white py-2 px-3 rounded-lg text-sm font-medium hover:from-pink-600 hover:to-purple-600 transition-all duration-200">
+                            📥
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="bg-white rounded-xl shadow-lg p-12 text-center">
+            <div class="text-6xl mb-4">🎨</div>
+            <h3 class="text-2xl font-bold text-gray-900 mb-2">No Images Found</h3>
+            <p class="text-gray-600 mb-6">
+                {% if search or filter_palette or filter_downsample %}
+                No images match your current filters. Try adjusting your search criteria.
+                {% else %}
+                You haven't processed any images yet. Create your first pixel art!
+                {% endif %}
+            </p>
+            <div class="space-x-4">
+                <a href="/" class="bg-gradient-to-r from-pixel-purple to-pixel-pink text-white font-bold py-3 px-6 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all duration-200">
+                    Create Your First Image
+                </a>
+                {% if search or filter_palette or filter_downsample %}
+                <a href="/gallery" class="text-pixel-purple hover:text-pixel-pink font-medium">
+                    Clear Filters
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Pagination -->
+        {% if total_pages > 1 %}
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <div class="flex items-center justify-between">
+                <div class="text-gray-700">
+                    Page {{ current_page }} of {{ total_pages }}
+                </div>
+
+                <div class="flex space-x-2">
+                    {% if has_prev %}
+                    <a href="{{ prev_url }}"
+                       class="bg-gradient-to-r from-pixel-blue to-pixel-purple text-white py-2 px-4 rounded-lg hover:from-blue-600 hover:to-purple-600 transition-all duration-200">
+                        ← Previous
+                    </a>
+                    {% endif %}
+
+                    <!-- Page Numbers -->
+                    {% if start_page > 1 %}
+                    <a href="{{ page_urls[1] }}"
+                       class="py-2 px-3 border border-gray-300 rounded hover:bg-gray-100">1</a>
+                    {% if start_page > 2 %}
+                    <span class="py-2 px-3">...</span>
+                    {% endif %}
+                    {% endif %}
+
+                    {% for page_num in range(start_page, end_page + 1) %}
+                    {% if page_num == current_page %}
+                    <span class="py-2 px-3 bg-pixel-purple text-white rounded">{{ page_num }}</span>
+                    {% else %}
+                    <a href="{{ page_urls[page_num] }}"
+                       class="py-2 px-3 border border-gray-300 rounded hover:bg-gray-100">{{ page_num }}</a>
+                    {% endif %}
+                    {% endfor %}
+
+                    {% if end_page < total_pages %}
+                    {% if end_page < total_pages - 1 %}
+                    <span class="py-2 px-3">...</span>
+                    {% endif %}
+                    <a href="{{ page_urls[total_pages] }}"
+                       class="py-2 px-3 border border-gray-300 rounded hover:bg-gray-100">{{ total_pages }}</a>
+                    {% endif %}
+
+                    {% if has_next %}
+                    <a href="{{ next_url }}"
+                       class="bg-gradient-to-r from-pixel-purple to-pixel-pink text-white py-2 px-4 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all duration-200">
+                        Next →
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 mt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="text-center text-gray-600">
+                <p>Pyxelate Gallery - Explore your pixel art creations</p>
+                <div class="mt-4 space-x-4">
+                    <button onclick="cleanupGallery()" class="text-pixel-purple hover:text-pixel-pink">
+                        🧹 Cleanup Orphaned Files
+                    </button>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        async function cleanupGallery() {
+            if (confirm('This will remove metadata for images that no longer exist. Continue?')) {
+                try {
+                    const response = await fetch('/cleanup', { method: 'POST' });
+                    const result = await response.json();
+                    alert(`Cleaned up ${result.cleaned} orphaned entries`);
+                    if (result.cleaned > 0) {
+                        location.reload();
+                    }
+                } catch (error) {
+                    alert('Error during cleanup: ' + error.message);
+                }
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ metadata.original_filename }} - Pyxelate to Color</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'pixel-purple': '#8B5CF6',
+                        'pixel-pink': '#EC4899',
+                        'pixel-blue': '#3B82F6',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gradient-to-br from-purple-50 to-pink-50 min-h-screen">
+    <!-- Header -->
+    <div class="bg-white shadow-lg border-b-4 border-pixel-purple">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-6">
+                <div class="flex items-center">
+                    <div class="w-8 h-8 bg-gradient-to-r from-pixel-purple to-pixel-pink rounded-lg mr-3"></div>
+                    <h1 class="text-3xl font-bold text-gray-900">Image Details</h1>
+                </div>
+                <div class="flex space-x-4">
+                    <a href="/gallery" class="bg-gradient-to-r from-pixel-blue to-pixel-purple text-white font-bold py-2 px-4 rounded-lg hover:from-blue-600 hover:to-purple-600 transition-all duration-200">
+                        ← Back to Gallery
+                    </a>
+                    <a href="/" class="bg-gradient-to-r from-pixel-pink to-pixel-purple text-white font-bold py-2 px-4 rounded-lg hover:from-pink-600 hover:to-purple-600 transition-all duration-200">
+                        🎨 Create New
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- Image Info Header -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-2xl font-bold text-gray-900">{{ metadata.original_filename }}</h2>
+                <div class="flex space-x-2">
+                    <span class="px-3 py-1 bg-pixel-purple text-white rounded-full text-sm">{{ metadata.palette }} colors</span>
+                    <span class="px-3 py-1 bg-pixel-pink text-white rounded-full text-sm">{{ metadata.downsample_by }}x downsample</span>
+                    <span class="px-3 py-1 bg-pixel-blue text-white rounded-full text-sm">{{ metadata.upscale }}px grid</span>
+                </div>
+            </div>
+
+            <!-- Metadata Grid -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div>
+                    <span class="text-gray-600">Processed:</span>
+                    <div class="font-medium">{{ metadata.timestamp[:10] }} {{ metadata.timestamp[11:16] }}</div>
+                </div>
+                <div>
+                    <span class="text-gray-600">File Size:</span>
+                    <div class="font-medium">{{ (metadata.file_size / 1024 / 1024) | round(2) }} MB</div>
+                </div>
+                {% if metadata.original_size %}
+                <div>
+                    <span class="text-gray-600">Original Size:</span>
+                    <div class="font-medium">{{ metadata.original_size[1] }} × {{ metadata.original_size[0] }}</div>
+                </div>
+                {% endif %}
+                {% if metadata.pixelated_size %}
+                <div>
+                    <span class="text-gray-600">Pixelated Size:</span>
+                    <div class="font-medium">{{ metadata.pixelated_size[1] }} × {{ metadata.pixelated_size[0] }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Images Side by Side -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <!-- Pixelated Version -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div class="p-4 border-b border-gray-200">
+                    <h3 class="text-lg font-bold text-gray-900">Pixelated Version</h3>
+                    <p class="text-sm text-gray-600">Clean pixel art without grid overlay</p>
+                </div>
+                <div class="p-4">
+                    <div class="bg-gray-100 rounded-lg p-4">
+                        <img src="{{ pixelated_url }}" alt="Pixelated {{ metadata.original_filename }}"
+                             class="max-w-full h-auto mx-auto rounded-lg shadow-md">
+                    </div>
+                    <div class="mt-4 flex justify-center">
+                        <a href="{{ pixelated_url }}" download="pixelated_{{ metadata.file_id }}.png"
+                           class="bg-gradient-to-r from-pixel-pink to-pixel-purple text-white font-bold py-2 px-4 rounded-lg hover:from-pink-600 hover:to-purple-600 transition-all duration-200">
+                            📥 Download Pixelated
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grid Version -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div class="p-4 border-b border-gray-200">
+                    <h3 class="text-lg font-bold text-gray-900">Paint-by-Number Grid</h3>
+                    <p class="text-sm text-gray-600">Grid with color indices for manual painting</p>
+                </div>
+                <div class="p-4">
+                    <div class="bg-gray-100 rounded-lg p-4">
+                        <img src="{{ result_url }}" alt="Grid {{ metadata.original_filename }}"
+                             class="max-w-full h-auto mx-auto rounded-lg shadow-md">
+                    </div>
+                    <div class="mt-4 flex justify-center">
+                        <a href="/download/{{ metadata.file_id }}"
+                           class="bg-gradient-to-r from-pixel-blue to-pixel-purple text-white font-bold py-2 px-4 rounded-lg hover:from-blue-600 hover:to-purple-600 transition-all duration-200">
+                            📥 Download Grid
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Color Palette Section -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <h3 class="text-2xl font-bold text-gray-900 mb-6">🎨 Color Palette ({{ metadata.colors|length }} colors)</h3>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+                {% for i in range(metadata.colors|length) %}
+                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:shadow-md transition-shadow">
+                    <div class="flex items-center space-x-3">
+                        <!-- Color swatch -->
+                        <div class="w-12 h-12 rounded-lg border-2 border-gray-300 shadow-md flex-shrink-0"
+                             style="background-color: rgb({{ metadata.colors[i][0] }}, {{ metadata.colors[i][1] }}, {{ metadata.colors[i][2] }});">
+                        </div>
+
+                        <!-- Color info -->
+                        <div class="flex-1 min-w-0">
+                            <div class="text-2xl font-bold text-gray-800">{{ i }}</div>
+                            <div class="text-xs text-gray-600 font-mono">
+                                rgb({{ metadata.colors[i][0] }}, {{ metadata.colors[i][1] }}, {{ metadata.colors[i][2] }})
+                            </div>
+                            <div class="text-xs text-gray-600 font-mono">
+                                #{{ '%02x%02x%02x'|format(metadata.colors[i][0], metadata.colors[i][1], metadata.colors[i][2]) }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Copy button -->
+                    <button onclick="copyColor('{{ metadata.colors[i][0] }}, {{ metadata.colors[i][1] }}, {{ metadata.colors[i][2] }}')"
+                            class="mt-2 w-full bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs py-1 px-2 rounded transition-colors">
+                        Copy RGB
+                    </button>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Processing Settings -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <h3 class="text-2xl font-bold text-gray-900 mb-6">⚙️ Processing Settings</h3>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Downsample Factor -->
+                <div class="bg-gradient-to-r from-purple-100 to-pink-100 rounded-lg p-6 text-center">
+                    <div class="text-4xl font-bold text-pixel-purple mb-2">{{ metadata.downsample_by }}x</div>
+                    <div class="text-lg font-semibold text-gray-800 mb-2">Downsample Factor</div>
+                    <div class="text-sm text-gray-600">
+                        Higher values create more pixelated effects by reducing image resolution
+                    </div>
+                </div>
+
+                <!-- Palette Size -->
+                <div class="bg-gradient-to-r from-pink-100 to-blue-100 rounded-lg p-6 text-center">
+                    <div class="text-4xl font-bold text-pixel-pink mb-2">{{ metadata.palette }}</div>
+                    <div class="text-lg font-semibold text-gray-800 mb-2">Color Palette Size</div>
+                    <div class="text-sm text-gray-600">
+                        Number of distinct colors used in the final image
+                    </div>
+                </div>
+
+                <!-- Grid Cell Size -->
+                <div class="bg-gradient-to-r from-blue-100 to-purple-100 rounded-lg p-6 text-center">
+                    <div class="text-4xl font-bold text-pixel-blue mb-2">{{ metadata.upscale }}px</div>
+                    <div class="text-lg font-semibold text-gray-800 mb-2">Grid Cell Size</div>
+                    <div class="text-sm text-gray-600">
+                        Size of each pixel cell in the grid version for paint-by-number
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">🎮 Actions</h3>
+            <div class="flex flex-wrap gap-4">
+                <a href="/download/{{ metadata.file_id }}"
+                   class="bg-gradient-to-r from-pixel-blue to-pixel-purple text-white font-bold py-3 px-6 rounded-lg hover:from-blue-600 hover:to-purple-600 transition-all duration-200 shadow-lg">
+                    📥 Download Grid Version
+                </a>
+
+                <a href="{{ pixelated_url }}" download="pixelated_{{ metadata.file_id }}.png"
+                   class="bg-gradient-to-r from-pixel-pink to-pixel-purple text-white font-bold py-3 px-6 rounded-lg hover:from-pink-600 hover:to-purple-600 transition-all duration-200 shadow-lg">
+                    📥 Download Pixelated Only
+                </a>
+
+                <a href="/download_quadrants/{{ metadata.file_id }}"
+                   class="bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold py-3 px-6 rounded-lg hover:from-orange-600 hover:to-red-600 transition-all duration-200 shadow-lg">
+                    🧩 Download as 4 Quadrants
+                </a>
+
+                <button onclick="processAgain()"
+                        class="bg-gradient-to-r from-green-500 to-green-600 text-white font-bold py-3 px-6 rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-lg">
+                    🔄 Process with Same Settings
+                </button>
+
+                <button onclick="deleteImage()"
+                        class="bg-gradient-to-r from-red-500 to-red-600 text-white font-bold py-3 px-6 rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-200 shadow-lg">
+                    🗑️ Delete Image
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 mt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="text-center text-gray-600">
+                <p>Processed on {{ metadata.timestamp[:10] }} at {{ metadata.timestamp[11:16] }}</p>
+                <div class="mt-2 space-x-4">
+                    <a href="/gallery" class="text-pixel-purple hover:text-pixel-pink">← Back to Gallery</a>
+                    <a href="/" class="text-pixel-purple hover:text-pixel-pink">Create New Image</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        function copyColor(rgb) {
+            navigator.clipboard.writeText(`rgb(${rgb})`).then(() => {
+                // Temporary feedback
+                const button = event.target;
+                const originalText = button.textContent;
+                button.textContent = 'Copied!';
+                button.classList.add('bg-green-200', 'text-green-800');
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.classList.remove('bg-green-200', 'text-green-800');
+                }, 1000);
+            });
+        }
+
+        function processAgain() {
+            // Redirect to home with pre-filled settings
+            const url = new URL('/', window.location.origin);
+            url.searchParams.set('downsample_by', '{{ metadata.downsample_by }}');
+            url.searchParams.set('palette', '{{ metadata.palette }}');
+            url.searchParams.set('upscale', '{{ metadata.upscale }}');
+            window.location.href = url.toString();
+        }
+
+        async function deleteImage() {
+            if (confirm('Are you sure you want to delete this image? This action cannot be undone.')) {
+                try {
+                    const response = await fetch('/image/{{ metadata.file_id }}', { method: 'DELETE' });
+                    const result = await response.json();
+                    alert(`Deleted ${result.deleted_files} files and metadata`);
+                    window.location.href = '/gallery';
+                } catch (error) {
+                    alert('Error deleting image: ' + error.message);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
