@@ -15,3 +15,5 @@ static/outputs/
 
 # Uploads
 static/uploads/
+
+processed_images_metadata.json

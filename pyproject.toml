@@ -10,8 +10,8 @@ dependencies = [
     "matplotlib>=3.10.3",
     "pillow>=11.3.0",
     "pyxelate",
-    "watchdog>=6.0.0",
-]
+        "watchdog>=6.0.0",
+        "ruff>=0.0.0",]
 
 [tool.uv.sources]
 pyxelate = { git = "https://github.com/sedthh/pyxelate.git" }
