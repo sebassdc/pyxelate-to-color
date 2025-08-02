@@ -24,3 +24,7 @@ uv run pytest tests/test_*.py::test_func
 - Use pathlib for file paths
 
 No Cursor/Copilot rules detected.
+
+## Git Practices
+
+- Do not run `git diff` on lockfiles.
