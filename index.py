@@ -16,7 +16,7 @@ from fastapi.templating import Jinja2Templates
 import numpy as np
 from skimage import io
 import utils
-from metadata import MetadataManager
+from metadata import MetadataDBManager
 
 # Add imports for quadrant functionality
 import zipfile
@@ -37,7 +37,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
 # Initialize metadata manager
-metadata_manager = MetadataManager()
+metadata_manager = MetadataDBManager()
 
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request):
