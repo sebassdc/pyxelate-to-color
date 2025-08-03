@@ -23,16 +23,16 @@
     <!-- Header -->
     <div class="bg-white shadow-lg border-b-4 border-pixel-purple">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center py-6">
-                <div class="flex items-center">
-                    <div class="w-8 h-8 bg-gradient-to-r from-pixel-purple to-pixel-pink rounded-lg mr-3"></div>
-                    <h1 class="text-3xl font-bold text-gray-900">Image Details</h1>
+            <div class="flex flex-col sm:flex-row sm:justify-between items-start sm:items-center py-6 space-y-4 sm:space-y-0">
+                <div class="flex items-center space-x-3">
+                    <a href="/gallery" class="bg-gradient-to-r from-pixel-blue to-pixel-purple text-white w-10 h-10 flex items-center justify-center rounded-md hover:from-blue-600 hover:to-purple-600 transition-all duration-200">←</a>
+                    <div class="w-8 h-8 bg-gradient-to-r from-pixel-purple to-pixel-pink rounded-lg"></div>
+                    <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Image Details</h1>
                 </div>
-                <div class="flex space-x-4">
-                    <a href="/gallery" class="bg-gradient-to-r from-pixel-blue to-pixel-purple text-white font-bold py-2 px-4 rounded-lg hover:from-blue-600 hover:to-purple-600 transition-all duration-200">
-                        ← Back to Gallery
-                    </a>
-                    <a href="/" class="bg-gradient-to-r from-pixel-pink to-pixel-purple text-white font-bold py-2 px-4 rounded-lg hover:from-pink-600 hover:to-purple-600 transition-all duration-200">
+                <div class="hidden">
+                    <a href="/gallery" class="bg-gradient-to-r from-pixel-blue to-pixel-purple text-white font-bold py-2 px-2 rounded-lg hover:from-blue-600 hover:to-purple-600 transition-all duration-200">
+←                    </a>
+                    <a href="/" class="hidden bg-gradient-to-r from-pixel-pink to-pixel-purple text-white font-bold py-2 px-4 rounded-lg hover:from-pink-600 hover:to-purple-600 transition-all duration-200">
                         🎨 Create New
                     </a>
                 </div>
@@ -45,12 +45,12 @@
 
         <!-- Image Info Header -->
         <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
-            <div class="flex items-center justify-between mb-4">
+            <div class="flex flex-col sm:flex-row items-center sm:justify-between mb-4 space-y-2 sm:space-y-0">
                 <h2 class="text-2xl font-bold text-gray-900">{{ metadata.original_filename }}</h2>
-                <div class="flex space-x-2">
-                    <span class="px-3 py-1 bg-pixel-purple text-white rounded-full text-sm">{{ metadata.palette }} colors</span>
-                    <span class="px-3 py-1 bg-pixel-pink text-white rounded-full text-sm">{{ metadata.downsample_by }}x downsample</span>
-                    <span class="px-3 py-1 bg-pixel-blue text-white rounded-full text-sm">{{ metadata.upscale }}px grid</span>
+                <div class="flex flex-wrap justify-center sm:justify-start gap-2">
+                    <span class="px-2 py-1 bg-pixel-purple text-white rounded-full text-xs sm:text-sm">{{ metadata.palette }} colors</span>
+                    <span class="px-2 py-1 bg-pixel-pink text-white rounded-full text-xs sm:text-sm">{{ metadata.downsample_by }}x downsample</span>
+                    <span class="px-2 py-1 bg-pixel-blue text-white rounded-full text-xs sm:text-sm">{{ metadata.upscale }}px grid</span>
                 </div>
             </div>
 
@@ -235,6 +235,7 @@
             </div>
         </div>
     </footer>
+    <a href="/" class="fixed bottom-6 right-6 bg-gradient-to-tr from-pixel-pink to-pixel-purple text-white w-14 h-14 flex items-center justify-center rounded-full shadow-lg text-3xl hover:from-pixel-purple hover:to-pixel-pink transition-all duration-200">+</a>
 
     <script>
         function copyColor(rgb) {
