@@ -1,55 +1,17 @@
-import json
 import os
 from datetime import datetime
-from pathlib import Path
 from typing import List, Dict, Optional
 from dataclasses import dataclass, asdict
 import uuid
 
-@dataclass
-class ImageMetadata:
-    file_id: str
-    original_filename: str
-    timestamp: str
-    downsample_by: int
-    palette: int
-    upscale: int
-    colors: List[List[int]]
-    file_size: int
-    original_size: tuple = None
-    pixelated_size: tuple = None
+# I will need the new Database class
+from database import Database
 
-    def to_dict(self):
-        return asdict(self)
+from models import ImageMetadata
 
-    @classmethod
-    def from_dict(cls, data: dict):
-        return cls(**data)
-
-class MetadataManager:
-    def __init__(self, metadata_file: str = "processed_images_metadata.json"):
-        self.metadata_file = metadata_file
-        self.ensure_metadata_file()
-
-    def ensure_metadata_file(self):
-        """Ensure the metadata file exists."""
-        if not os.path.exists(self.metadata_file):
-            self.save_metadata([])
-
-    def load_metadata(self) -> List[ImageMetadata]:
-        """Load all metadata from the JSON file."""
-        try:
-            with open(self.metadata_file, 'r') as f:
-                data = json.load(f)
-            return [ImageMetadata.from_dict(item) for item in data]
-        except (FileNotFoundError, json.JSONDecodeError):
-            return []
-
-    def save_metadata(self, metadata_list: List[ImageMetadata]):
-        """Save metadata list to JSON file."""
-        data = [item.to_dict() for item in metadata_list]
-        with open(self.metadata_file, 'w') as f:
-            json.dump(data, f, indent=2)
+class MetadataDBManager:
+    def __init__(self, db_path: str = "database.db"):
+        self.db = Database(db_path)
 
     def add_image_metadata(self,
                           file_id: str,
@@ -61,7 +23,7 @@ class MetadataManager:
                           file_size: int,
                           original_size: tuple = None,
                           pixelated_size: tuple = None) -> ImageMetadata:
-        """Add new image metadata."""
+        """Add new image metadata to the database."""
         metadata = ImageMetadata(
             file_id=file_id,
             original_filename=original_filename,
@@ -74,65 +36,39 @@ class MetadataManager:
             original_size=original_size,
             pixelated_size=pixelated_size
         )
-
-        # Load existing metadata
-        metadata_list = self.load_metadata()
-
-        # Add new metadata
-        metadata_list.append(metadata)
-
-        # Save updated metadata
-        self.save_metadata(metadata_list)
-
+        self.db.add_image_metadata(metadata)
         return metadata
 
     def get_all_metadata(self) -> List[ImageMetadata]:
-        """Get all image metadata sorted by timestamp (newest first)."""
-        metadata_list = self.load_metadata()
-        return sorted(metadata_list, key=lambda x: x.timestamp, reverse=True)
+        """Get all image metadata from the database."""
+        return self.db.get_all_metadata()
 
     def get_metadata_by_id(self, file_id: str) -> Optional[ImageMetadata]:
-        """Get metadata for a specific file ID."""
-        metadata_list = self.load_metadata()
-        for metadata in metadata_list:
-            if metadata.file_id == file_id:
-                return metadata
-        return None
+        """Get metadata for a specific file ID from the database."""
+        return self.db.get_metadata_by_id(file_id)
 
     def delete_metadata(self, file_id: str) -> bool:
-        """Delete metadata for a specific file ID."""
-        metadata_list = self.load_metadata()
-        original_length = len(metadata_list)
-        metadata_list = [m for m in metadata_list if m.file_id != file_id]
-
-        if len(metadata_list) < original_length:
-            self.save_metadata(metadata_list)
-            return True
-        return False
+        """Delete metadata for a specific file ID from the database."""
+        return self.db.delete_metadata(file_id)
 
     def cleanup_orphaned_metadata(self) -> int:
         """Remove metadata entries for files that no longer exist."""
-        metadata_list = self.load_metadata()
-        existing_metadata = []
+        all_metadata = self.get_all_metadata()
         cleaned_count = 0
 
-        for metadata in metadata_list:
+        for metadata in all_metadata:
             result_file = f"static/outputs/{metadata.file_id}_result.png"
             pixelated_file = f"static/outputs/{metadata.file_id}_pixelated.png"
 
-            if os.path.exists(result_file) and os.path.exists(pixelated_file):
-                existing_metadata.append(metadata)
-            else:
+            if not os.path.exists(result_file) or not os.path.exists(pixelated_file):
+                self.delete_metadata(metadata.file_id)
                 cleaned_count += 1
-
-        if cleaned_count > 0:
-            self.save_metadata(existing_metadata)
-
+        
         return cleaned_count
 
     def get_stats(self) -> Dict:
-        """Get statistics about processed images."""
-        metadata_list = self.load_metadata()
+        """Get statistics about processed images from the database."""
+        metadata_list = self.get_all_metadata()
 
         if not metadata_list:
             return {
@@ -148,17 +84,17 @@ class MetadataManager:
         downsample_values = [m.downsample_by for m in metadata_list]
 
         from collections import Counter
-        most_common_downsample = Counter(downsample_values).most_common(1)[0][0]
+        most_common_downsample = Counter(downsample_values).most_common(1)[0][0] if downsample_values else 0
 
         timestamps = [datetime.fromisoformat(m.timestamp) for m in metadata_list]
 
         return {
             'total_images': len(metadata_list),
             'total_size_mb': round(total_size / (1024 * 1024), 2),
-            'avg_palette_size': round(sum(palette_sizes) / len(palette_sizes), 1),
+            'avg_palette_size': round(sum(palette_sizes) / len(palette_sizes), 1) if palette_sizes else 0,
             'most_common_downsample': most_common_downsample,
             'date_range': {
-                'earliest': min(timestamps).strftime('%Y-%m-%d'),
-                'latest': max(timestamps).strftime('%Y-%m-%d')
+                'earliest': min(timestamps).strftime('%Y-%m-%d') if timestamps else 'N/A',
+                'latest': max(timestamps).strftime('%Y-%m-%d') if timestamps else 'N/A'
             }
         }

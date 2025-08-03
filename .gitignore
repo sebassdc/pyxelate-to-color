@@ -1,19 +1,5 @@
-# Python-generated files
+
+database.db
 __pycache__/
-*.py[oc]
-build/
-dist/
-wheels/
-*.egg-info
-
-# Virtual environments
-.venv
-
-
-# Output files
-static/outputs/
-
-# Uploads
 static/uploads/
-
-processed_images_metadata.json
+static/outputs/
