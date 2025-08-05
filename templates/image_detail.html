@@ -140,7 +140,7 @@
                             <p class="text-lg font-medium mb-2">No grid generated yet</p>
                             <p class="text-sm mb-6">Generate a paint-by-number grid for this image</p>
                         </div>
-                        <button hx-post="/generate-grid/{{ file_id }}" 
+                        <button hx-post="/generate-grid/{{ metadata.file_id }}" 
                                 hx-target="#grid-container" 
                                 hx-swap="innerHTML"
                                 hx-disabled-elt="this"

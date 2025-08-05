@@ -327,19 +327,33 @@ async def generate_grid(request: Request, file_id: str):
             # Load the pixelated image
             pixelated_image = io.imread(pixelated_path)
             
-            # Recreate the Pyx object with the saved colors
-            pyx = Pyx(
-                factor=metadata['downsample_by'],
-                palette=metadata['palette'],
-                upscale=metadata['upscale']
+            # We need to re-process the original image to get the Pyx object with colors
+            # First, try to find the original image
+            import glob
+            original_files = glob.glob(f"static/uploads/{file_id}_*")
+            if not original_files:
+                raise Exception("Original image not found")
+            
+            original_path = original_files[0]
+            original_image = io.imread(original_path)
+            
+            # Re-create the pixelation to get the Pyx object
+            pixelate_options = utils.PixelateOptions(
+                downsample_by=metadata.downsample_by,
+                upscale=metadata.upscale,
+                palette=metadata.palette,
             )
-            # Set the colors from metadata
-            pyx.colors = np.array(metadata['colors']).reshape(-1, 3)
+            
+            # This will recreate the Pyx object with the correct colors
+            _, pyx = utils.pixelate_image(
+                image=original_image,
+                options=pixelate_options
+            )
             
             # Create grid with color indices
             result_image = utils.create_draw_grid(
                 pixelated_image,
-                cell_size=metadata['upscale'],
+                cell_size=metadata.upscale,
                 pyx=pyx,
             )
             
