@@ -22,6 +22,7 @@
     </div>
 
     <!-- Main Result with Grid -->
+    {% if has_grid %}
     <div class="space-y-4 mb-8">
         <h3 class="text-lg font-semibold text-gray-800">Paint-by-Number Grid</h3>
         <div class="bg-gray-100 rounded-lg p-4">
@@ -31,6 +32,19 @@
             </p>
         </div>
     </div>
+    {% else %}
+    <div class="space-y-4 mb-8">
+        <h3 class="text-lg font-semibold text-gray-800">Paint-by-Number Grid</h3>
+        <div class="bg-gray-100 rounded-lg p-8 text-center">
+            <p class="text-gray-600 mb-4">
+                Grid generation is optional. You can generate it later from the image details page if you like the pixelated result.
+            </p>
+            <a href="/image/{{ file_id }}" class="text-pixel-purple hover:text-pixel-pink font-medium">
+                View Image Details →
+            </a>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Color Palette -->
     {% if colors %}
@@ -56,14 +70,14 @@
 
     <!-- Download Buttons -->
     <div class="flex flex-wrap gap-4 justify-center">
-        <a href="/download/{{ file_id }}"
-           class="bg-gradient-to-r from-pixel-blue to-pixel-purple text-white font-bold py-3 px-6 rounded-lg hover:from-blue-600 hover:to-purple-600 transform hover:scale-105 transition-all duration-200 shadow-lg">
-            📥 Download Grid Version
-        </a>
-
         <a href="{{ pixelated_url }}" download="pixelated_{{ file_id }}.png"
            class="bg-gradient-to-r from-pixel-pink to-pixel-purple text-white font-bold py-3 px-6 rounded-lg hover:from-pink-600 hover:to-purple-600 transform hover:scale-105 transition-all duration-200 shadow-lg">
-            📥 Download Pixelated Only
+            📥 Download Pixelated
+        </a>
+
+        <a href="/image/{{ file_id }}"
+           class="bg-gradient-to-r from-pixel-blue to-pixel-purple text-white font-bold py-3 px-6 rounded-lg hover:from-blue-600 hover:to-purple-600 transform hover:scale-105 transition-all duration-200 shadow-lg">
+            👁️ View Details
         </a>
 
         <button onclick="location.reload()"

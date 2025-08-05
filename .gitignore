@@ -3,3 +3,4 @@ database.db
 __pycache__/
 static/uploads/
 static/outputs/
+processed_images_metadata.json

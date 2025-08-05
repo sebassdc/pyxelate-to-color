@@ -1,7 +1,8 @@
-from typing import Union, Optional
+from typing import Optional
 import os
 import uuid
-from pathlib import Path
+import zipfile
+import tempfile
 
 # Configure matplotlib for web environment BEFORE any other matplotlib imports
 import matplotlib
@@ -9,19 +10,17 @@ matplotlib.use('Agg')  # Use non-interactive backend
 import matplotlib.pyplot as plt
 plt.ioff()  # Turn off interactive mode
 
-from fastapi import FastAPI, Request, File, UploadFile, HTTPException, Query, Form
-from fastapi.responses import HTMLResponse, FileResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
-import numpy as np
-from skimage import io
-import utils
-from metadata import MetadataDBManager
+from fastapi import FastAPI, Request, File, UploadFile, HTTPException, Query, Form  # noqa: E402
+from fastapi.responses import HTMLResponse, FileResponse  # noqa: E402
+from fastapi.staticfiles import StaticFiles  # noqa: E402
+from fastapi.templating import Jinja2Templates  # noqa: E402
+import numpy as np  # noqa: E402
+from skimage import io  # noqa: E402
+from PIL import Image  # noqa: E402
+from pyxelate import Pyx  # noqa: E402
 
-# Add imports for quadrant functionality
-import zipfile
-import tempfile
-from PIL import Image
+import utils  # noqa: E402
+from metadata import MetadataDBManager  # noqa: E402
 
 app = FastAPI(title="Pyxelate to Color", description="Convert images to pixel art with color grids")
 
@@ -52,7 +51,7 @@ async def upload_image(
     upscale: int = Form(100)
 ):
     # Debug: Print received parameters
-    print(f"🔍 DEBUG - Received parameters:")
+    print("🔍 DEBUG - Received parameters:")
     print(f"  - downsample_by: {downsample_by} (type: {type(downsample_by)})")
     print(f"  - palette: {palette} (type: {type(palette)})")
     print(f"  - upscale: {upscale} (type: {type(upscale)})")
@@ -60,7 +59,7 @@ async def upload_image(
     # Debug: Print raw form data
     try:
         form_data = await request.form()
-        print(f"🔍 DEBUG - Raw form data:")
+        print("🔍 DEBUG - Raw form data:")
         for key, value in form_data.items():
             if key != 'file':  # Don't print file content
                 print(f"  - {key}: {value} (type: {type(value)})")
@@ -94,7 +93,7 @@ async def upload_image(
         )
 
         # Debug: Print the options being used
-        print(f"🔍 DEBUG - PixelateOptions created:")
+        print("🔍 DEBUG - PixelateOptions created:")
         print(f"  - downsample_by: {pixelate_options.downsample_by}")
         print(f"  - upscale: {pixelate_options.upscale}")
         print(f"  - palette: {pixelate_options.palette}")
@@ -105,23 +104,12 @@ async def upload_image(
             options=pixelate_options
         )
 
-        # Create grid with color indices
-        result_image = utils.create_draw_grid(
-            pyxelated_image,
-            cell_size=upscale,
-            pyx=pyx,
-        )
-
-        # Save result
-        output_path = f"static/outputs/{file_id}_result.png"
-        io.imsave(output_path, result_image)
-
-        # Also save the pixelated version without grid
+        # Save the pixelated version
         pixelated_path = f"static/outputs/{file_id}_pixelated.png"
         io.imsave(pixelated_path, pyxelated_image)
 
         # Save metadata for gallery
-        file_size = os.path.getsize(output_path)
+        file_size = os.path.getsize(pixelated_path)
         # Flatten colors to ensure proper structure [r, g, b] not [[r, g, b]]
         flattened_colors = pyx.colors.reshape(-1, 3).tolist()
         metadata_manager.add_image_metadata(
@@ -142,9 +130,10 @@ async def upload_image(
             "file_id": file_id,
             "original_url": f"/{upload_path}",
             "pixelated_url": f"/{pixelated_path}",
-            "result_url": f"/{output_path}",
+            "result_url": None,  # No grid generated yet
             "colors": flattened_colors,
-            "palette_size": palette
+            "palette_size": palette,
+            "has_grid": False
         })
 
     except Exception as e:
@@ -275,16 +264,23 @@ async def gallery(request: Request,
 async def view_image(request: Request, file_id: str):
     """View a specific processed image with details."""
     metadata = metadata_manager.get_metadata_by_id(file_id)
+    print(f"🔍 DEBUG - File ID: {file_id}")
     print(f"🔍 DEBUG - Metadata: {metadata}")
 
     # Check if files exist first
     result_path = f"static/outputs/{file_id}_result.png"
     pixelated_path = f"static/outputs/{file_id}_pixelated.png"
-
-
-
-    if not (os.path.exists(result_path) and os.path.exists(pixelated_path)):
-        raise HTTPException(status_code=404, detail="Image files not found")
+    
+    print("🔍 DEBUG - Checking paths:")
+    print(f"  Result: {result_path} - Exists: {os.path.exists(result_path)}")
+    print(f"  Pixelated: {pixelated_path} - Exists: {os.path.exists(pixelated_path)}")
+    
+    # Check if pixelated file exists (minimum requirement)
+    if not os.path.exists(pixelated_path):
+        raise HTTPException(status_code=404, detail="Pixelated image not found")
+    
+    # Check if grid exists
+    has_grid = os.path.exists(result_path)
 
     # If no metadata exists, create default metadata
     if not metadata:
@@ -303,9 +299,82 @@ async def view_image(request: Request, file_id: str):
     return templates.TemplateResponse("image_detail.html", {
         "request": request,
         "metadata": metadata,
-        "result_url": f"/static/outputs/{file_id}_result.png",
-        "pixelated_url": f"/static/outputs/{file_id}_pixelated.png"
+        "result_url": f"/static/outputs/{file_id}_result.png" if has_grid else None,
+        "pixelated_url": f"/static/outputs/{file_id}_pixelated.png",
+        "has_grid": has_grid,
+        "file_id": file_id
     })
+
+@app.post("/generate-grid/{file_id}", response_class=HTMLResponse)
+async def generate_grid(request: Request, file_id: str):
+    """Generate color grid for an existing pixelated image."""
+    # Get metadata
+    metadata = metadata_manager.get_metadata_by_id(file_id)
+    if not metadata:
+        raise HTTPException(status_code=404, detail="Image metadata not found")
+    
+    # Check if pixelated image exists
+    pixelated_path = f"static/outputs/{file_id}_pixelated.png"
+    if not os.path.exists(pixelated_path):
+        raise HTTPException(status_code=404, detail="Pixelated image not found")
+    
+    # Check if grid already exists
+    result_path = f"static/outputs/{file_id}_result.png"
+    result_url = f"/static/outputs/{file_id}_result.png"
+    
+    if not os.path.exists(result_path):
+        try:
+            # Load the pixelated image
+            pixelated_image = io.imread(pixelated_path)
+            
+            # Recreate the Pyx object with the saved colors
+            pyx = Pyx(
+                factor=metadata['downsample_by'],
+                palette=metadata['palette'],
+                upscale=metadata['upscale']
+            )
+            # Set the colors from metadata
+            pyx.colors = np.array(metadata['colors']).reshape(-1, 3)
+            
+            # Create grid with color indices
+            result_image = utils.create_draw_grid(
+                pixelated_image,
+                cell_size=metadata['upscale'],
+                pyx=pyx,
+            )
+            
+            # Save result
+            io.imsave(result_path, result_image)
+            
+        except Exception as e:
+            # Return error as HTML
+            return f"""
+            <div class="bg-gray-100 rounded-lg p-8 text-center">
+                <div class="text-red-500 mb-4">
+                    <p class="text-lg font-medium mb-2">Failed to generate grid</p>
+                    <p class="text-sm">{str(e)}</p>
+                </div>
+                <button hx-post="/generate-grid/{file_id}" 
+                        hx-target="this" 
+                        hx-swap="outerHTML"
+                        class="bg-gradient-to-r from-pixel-blue to-pixel-purple text-white font-bold py-3 px-6 rounded-lg hover:from-blue-600 hover:to-purple-600 transition-all duration-200">
+                    🔄 Try Again
+                </button>
+            </div>
+            """
+    
+    # Return the grid section HTML
+    return f"""
+    <div class="bg-gray-100 rounded-lg p-4">
+        <img src="{result_url}" alt="Grid" class="max-w-full h-auto mx-auto rounded-lg shadow-md">
+    </div>
+    <div class="mt-4 flex justify-center">
+        <a href="/download/{file_id}"
+           class="bg-gradient-to-r from-pixel-blue to-pixel-purple text-white font-bold py-2 px-4 rounded-lg hover:from-blue-600 hover:to-purple-600 transition-all duration-200">
+            📥 Download Grid
+        </a>
+    </div>
+    """
 
 @app.post("/cleanup")
 async def cleanup_gallery():
@@ -316,18 +385,21 @@ async def cleanup_gallery():
 @app.delete("/image/{file_id}")
 async def delete_image(file_id: str):
     """Delete a processed image and its metadata."""
+    print(f"🗑️ DELETE request for image: {file_id}")
+    
     # Delete files
     result_path = f"static/outputs/{file_id}_result.png"
     pixelated_path = f"static/outputs/{file_id}_pixelated.png"
-    upload_path = f"static/uploads/{file_id}_*"
 
     deleted_files = 0
     if os.path.exists(result_path):
         os.remove(result_path)
         deleted_files += 1
+        print(f"  ✓ Deleted result file: {result_path}")
     if os.path.exists(pixelated_path):
         os.remove(pixelated_path)
         deleted_files += 1
+        print(f"  ✓ Deleted pixelated file: {pixelated_path}")
 
     # Clean up upload files (they might have different original names)
     import glob
@@ -335,20 +407,29 @@ async def delete_image(file_id: str):
     for upload_file in upload_files:
         os.remove(upload_file)
         deleted_files += 1
+        print(f"  ✓ Deleted upload file: {upload_file}")
 
     # Delete metadata
     metadata_deleted = metadata_manager.delete_metadata(file_id)
+    print(f"  {'✓' if metadata_deleted else '✗'} Metadata deletion: {metadata_deleted}")
+
+    if not metadata_deleted:
+        print(f"  ⚠️ WARNING: Metadata was not deleted for {file_id}")
 
     return {
         "deleted_files": deleted_files,
         "metadata_deleted": metadata_deleted,
-        "message": f"Deleted {deleted_files} files and metadata"
+        "message": f"Deleted {deleted_files} files and {'metadata' if metadata_deleted else 'NO METADATA'}"
     }
 
 @app.get("/download/{file_id}")
 async def download_result(file_id: str):
     file_path = f"static/outputs/{file_id}_result.png"
     if not os.path.exists(file_path):
+        # If grid doesn't exist, download pixelated version instead
+        pixelated_path = f"static/outputs/{file_id}_pixelated.png"
+        if os.path.exists(pixelated_path):
+            return FileResponse(pixelated_path, filename=f"pixelated_{file_id}.png")
         raise HTTPException(status_code=404, detail="File not found")
 
     return FileResponse(
