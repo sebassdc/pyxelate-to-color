@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ metadata.original_filename }} - Pyxelate to Color</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -18,6 +19,17 @@
             }
         }
     </script>
+    <style>
+        .htmx-indicator {
+            display: none;
+        }
+        .htmx-request .htmx-indicator {
+            display: inline;
+        }
+        .htmx-request .htmx-indicator-hide {
+            display: none;
+        }
+    </style>
 </head>
 <body class="bg-gradient-to-br from-purple-50 to-pink-50 min-h-screen">
     <!-- Header -->
@@ -107,7 +119,8 @@
                     <h3 class="text-lg font-bold text-gray-900">Paint-by-Number Grid</h3>
                     <p class="text-sm text-gray-600">Grid with color indices for manual painting</p>
                 </div>
-                <div class="p-4">
+                <div class="p-4" id="grid-container">
+                    {% if has_grid %}
                     <div class="bg-gray-100 rounded-lg p-4">
                         <img src="{{ result_url }}" alt="Grid {{ metadata.original_filename }}"
                              class="max-w-full h-auto mx-auto rounded-lg shadow-md">
@@ -118,6 +131,25 @@
                             📥 Download Grid
                         </a>
                     </div>
+                    {% else %}
+                    <div class="bg-gray-100 rounded-lg p-8 text-center">
+                        <div class="text-gray-500 mb-4">
+                            <svg class="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"></path>
+                            </svg>
+                            <p class="text-lg font-medium mb-2">No grid generated yet</p>
+                            <p class="text-sm mb-6">Generate a paint-by-number grid for this image</p>
+                        </div>
+                        <button hx-post="/generate-grid/{{ file_id }}" 
+                                hx-target="#grid-container" 
+                                hx-swap="innerHTML"
+                                hx-disabled-elt="this"
+                                class="bg-gradient-to-r from-pixel-blue to-pixel-purple text-white font-bold py-3 px-6 rounded-lg hover:from-blue-600 hover:to-purple-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <span class="htmx-indicator">⏳ Generating...</span>
+                            <span class="htmx-indicator-hide">🎨 Generate Grid</span>
+                        </button>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -195,20 +227,24 @@
         <div class="bg-white rounded-xl shadow-lg p-6">
             <h3 class="text-lg font-bold text-gray-900 mb-4">🎮 Actions</h3>
             <div class="flex flex-wrap gap-4">
+                {% if has_grid %}
                 <a href="/download/{{ metadata.file_id }}"
                    class="bg-gradient-to-r from-pixel-blue to-pixel-purple text-white font-bold py-3 px-6 rounded-lg hover:from-blue-600 hover:to-purple-600 transition-all duration-200 shadow-lg">
                     📥 Download Grid Version
                 </a>
+                {% endif %}
 
                 <a href="{{ pixelated_url }}" download="pixelated_{{ metadata.file_id }}.png"
                    class="bg-gradient-to-r from-pixel-pink to-pixel-purple text-white font-bold py-3 px-6 rounded-lg hover:from-pink-600 hover:to-purple-600 transition-all duration-200 shadow-lg">
                     📥 Download Pixelated Only
                 </a>
 
+                {% if has_grid %}
                 <a href="/download_quadrants/{{ metadata.file_id }}"
                    class="bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold py-3 px-6 rounded-lg hover:from-orange-600 hover:to-red-600 transition-all duration-200 shadow-lg">
                     🧩 Download as 4 Quadrants
                 </a>
+                {% endif %}
 
                 <button onclick="processAgain()"
                         class="bg-gradient-to-r from-green-500 to-green-600 text-white font-bold py-3 px-6 rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-lg">
